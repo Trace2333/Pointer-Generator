@@ -1,10 +1,14 @@
-import csv
+import os
 import pickle
+#import struct
+import json
+#from tensorflow.core.example import example_pb2
+# For tensorflow
+
 
 # <s> and </s> are used in the data files to segment the abstracts into sentences. They don't receive vocab ids.
 SENTENCE_START = '<s>'
 SENTENCE_END = '</s>'
-
 PAD_TOKEN = '[PAD]'  # This has a vocab id, which is used to pad the encoder input, decoder input and target sequence
 UNKNOWN_TOKEN = '[UNK]'  # This has a vocab id, which is used to represent out-of-vocabulary words
 START_DECODING = '[START]'  # This has a vocab id, which is used at the start of every decoder input sequence
@@ -74,9 +78,48 @@ class Vocab(object):
             pickle.dump(self._word_to_id, f)
 
 
-vocab_process = Vocab("../dataset/vocab", max_size=80000)
-vocab_process.write_metadata("vocab1.pkl")
-vocab_process.write_word_to_id("vocab.pkl")
-with open("vocab.pkl", "rb") as f2:
-    vv = pickle.load(f2)
-print("Process complete<")
+class Data(object):
+    def __init__(self, if_chucked, file_or_file_list=None):
+        """dataset_path means the dataset dir path"""
+        if if_chucked is False:
+            with open(file_or_file_list, "r") as f1:
+                self.file_set =json.load(f1)
+        if if_chucked is True and file_or_file_list is not None:
+            self.file_set = []
+            for filename in file_or_file_list:
+                if os.path.exists(filename):
+                    with open(filename, "r") as f1:
+                        self.file_set.append(json.load(filename))
+
+
+    # Need to import tensorflow
+    """def example_to_json(filename, target_filename):
+        json_data = {}
+        count = 0
+        with open(filename, "rb") as f1:
+            while True:
+                count += 1
+                per_iter = {}
+                len_bytes = f1.read(8)
+                if not len_bytes:
+                    break
+                str_len = struct.unpack('q', len_bytes)[0]
+                example_str = struct.unpack('%ds' % str_len, f1.read(str_len))[0]
+                ex = example_pb2.Example.FromString(example_str)
+                article = ex.features.feature['article'].bytes_list.value[0].decode()
+                abstract = ex.features.feature['abstract'].bytes_list.value[0].decode()
+                json_data[count] = per_iter
+                per_iter['abstract'] = abstract
+                per_iter['article'] = article
+                print("Precessed", count, "example")
+        with open(target_filename, "w") as f2:
+            json.dump(json_data, f2)"""
+
+    def
+
+
+if __name__ == '__main__':
+    vocab_process = Vocab("../dataset/vocab", max_size=80000)
+    vocab_process.write_metadata("../dataset/id_word.pkl")
+    vocab_process.write_word_to_id("../dataset/word_id.pkl")
+   # data_process()

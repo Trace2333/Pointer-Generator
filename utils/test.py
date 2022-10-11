@@ -1,8 +1,9 @@
-import torch
-import torch.nn as nn
-from functools  import reduce
-import pickle
-a = torch.randn([8, 20, 30])
+import tensorflow as tf
+import struct
+import json
+import glob
+from tensorflow.core.example import example_pb2
+"""a = torch.randn([8, 20, 30])
 b = torch.cat((a[0], a[1]), dim=-1)
 print(b.size())
 
@@ -56,8 +57,35 @@ cell = torch.randn([1, 1, 40])   # [batch_size, hidden_size]
 state = torch.randn([1, 1, 40])   # [batch_size, hidden_size]
 lstm = nn.LSTM(30, 40)
 out = lstm(input_t, (state, cell))
-print(out)
+print(out)"""
+def example_to_json(filename, target_filename):
+    json_data = {}
+    count = 0
+    with open(filename, "rb") as f1:
+        while True:
+            count += 1
+            per_iter = {}
+            len_bytes = f1.read(8)
+            if not len_bytes:
+                break
+            str_len = struct.unpack('q', len_bytes)[0]
+            example_str = struct.unpack('%ds' % str_len, f1.read(str_len))[0]
+            ex = example_pb2.Example.FromString(example_str)
+            article = ex.features.feature['article'].bytes_list.value[0].decode()
+            abstract = ex.features.feature['abstract'].bytes_list.value[0].decode()
+            json_data[count] = per_iter
+            per_iter['abstract'] = abstract
+            per_iter['article'] = article
+            print("Precessed", count, "example")
+    with open(target_filename, "w") as f2:
+        json.dump(json_data, f2)
+        print(target_filename, "saved !")
 
 
-
-
+#example_to_json("../dataset/train.bin", "../dataset/train.json")
+#example_to_json("../dataset/test.bin", "../dataset/test.json")
+#example_to_json("../dataset/val.bin", "../dataset/val.json")
+example_to_json("../dataset/chunked/train_000.bin", "../dataset/train000.json")
+example_to_json("../dataset/chunked/train_001.bin", "../dataset/train001.json")
+example_to_json("../dataset/chunked/train_002.bin", "../dataset/train002.json")
+example_to_json("../dataset/chunked/train_003.bin", "../dataset/train003.json")
