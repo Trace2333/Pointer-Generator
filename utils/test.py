@@ -1,8 +1,10 @@
-import tensorflow as tf
+#import tensorflow as tf
 import struct
 import json
+import string
+import pickle
 import glob
-from tensorflow.core.example import example_pb2
+#from tensorflow.core.example import example_pb2
 """a = torch.randn([8, 20, 30])
 b = torch.cat((a[0], a[1]), dim=-1)
 print(b.size())
@@ -58,7 +60,7 @@ state = torch.randn([1, 1, 40])   # [batch_size, hidden_size]
 lstm = nn.LSTM(30, 40)
 out = lstm(input_t, (state, cell))
 print(out)"""
-def example_to_json(filename, target_filename):
+"""def example_to_json(filename, target_filename):
     json_data = {}
     count = 0
     with open(filename, "rb") as f1:
@@ -88,4 +90,21 @@ def example_to_json(filename, target_filename):
 example_to_json("../dataset/chunked/train_000.bin", "../dataset/train000.json")
 example_to_json("../dataset/chunked/train_001.bin", "../dataset/train001.json")
 example_to_json("../dataset/chunked/train_002.bin", "../dataset/train002.json")
-example_to_json("../dataset/chunked/train_003.bin", "../dataset/train003.json")
+example_to_json("../dataset/chunked/train_003.bin", "../dataset/train003.json")"""
+with open("../dataset/word_id.pkl", "rb") as f:
+    vocab = pickle.load(f)
+print(vocab)
+
+with open("../dataset/train000.json") as f:
+    train = json.load(f)
+flag = 0
+y = []
+for i in train:
+    tokens = train[i]['abstract'].split('<s>')
+    y.append(tokens[1].split())
+    y.append(tokens[2].split())
+    y.append(tokens[3].split())
+    y.append(tokens[4].split())
+    for sen in y:
+        sen.insert(0, '<s>')
+    print(y)
