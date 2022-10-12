@@ -98,6 +98,7 @@ class Data(object):
         self.if_chucked = if_chucked
         with open(vocab_file, 'rb') as f3:
             self.vocab = pickle.load(f3)
+        self.vocab_len = len(self.vocab)
 
     # 需要导入tensorflow,因此预先注释掉
     """def example_to_json(filename, target_filename):
@@ -187,36 +188,51 @@ class Data(object):
         :return
             完成提取的tokens列表
         """
+        ids = []
+        oov_words = []
+        for story in self.tokens:
+            oov_id = self.vocab_len
+            id_per_article = [2]
+            oov_words_one_story = []
+            for token in story:
+                if token not in self.vocab:
+                    if token in oov_words_one_story:
+                        id_per_article.append(oov_words_one_story.index(token) + self.vocab_len)
+                    id_per_article.append(oov_id)
+                    oov_id += 1
+                    if token not in oov_words_one_story:
+                        oov_words_one_story.append(token)
+                else:
+                    id_per_article.append(self.vocab[token])
+            id_per_article.append(3)
+            ids.append(id_per_article)
+            oov_words.append(oov_words_one_story)
         y_ids = []
-        for abstracts in self.ys:   # 常规读取操作
+        for step, abstracts in enumerate(self.ys):   # 常规读取操作
             id_abstracts = []
             for abstract in abstracts[0]:
                 id_per_abstract = [2]
                 for token in abstract:
                     if token not in self.vocab:
-                        id_per_abstract.append(self.vocab['[UNK]'])
+                        if token in oov_words[step]:
+                            id_per_abstract.append(self.vocab_len + oov_words[step].index(token))   # 没有在vocab但是在article中的词，记录为在article的num
+                        else:
+                            id_per_abstract.append(self.vocab['[UNK]'])   # 没有在article也没有在vocab中的词记录为unk
                     else:
                         id_per_abstract.append(self.vocab[token])
                 id_per_abstract.append(3)
                 id_abstracts.append(id_per_abstract)
             y_ids.append(id_abstracts)
-        ids = []
-        for abstract in self.tokens:
-            id_per_article = [2]
-            for token in abstract:
-                if token not in self.vocab:
-                    id_per_article.append(self.vocab['[UNK]'])
-                else:
-                    id_per_article.append(self.vocab[token])
-            id_per_article.append(3)
-            ids.append(id_per_article)
         with open("../dataset/ids.pkl", "wb") as f1:
             pickle.dump(ids, f1)
-            print("../dataset/ids.pkl", " Saved!")
+            print("../dataset/ids.pkl", " Saved !")
         with open("../dataset/y.pkl", "wb") as f2:
             pickle.dump(y_ids, f2)
-            print("../dataset/y_ids.pkl", " Saved!")
-        return (ids, y_ids)
+            print("../dataset/y_ids.pkl", " Saved !")
+        with open("../dataset/oov_words.pkl", "wb") as f3:
+            pickle.dump(oov_words, f3)
+            print("../dataset/oov_words.pkl Saved !")
+        return (ids, y_ids, oov_words)
 
     def data_process(self):
         """

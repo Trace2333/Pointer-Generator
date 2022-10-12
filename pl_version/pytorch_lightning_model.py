@@ -3,6 +3,11 @@ import torch
 
 
 class PlPointerGenerator(pl.LightningModule):
-    def __init__(self, torch_model, args):
+    def __init__(self, torch_model):
         """args is a json object"""
         super(PlPointerGenerator, self).__init__()
+        self.model = torch_model
+
+
+
+

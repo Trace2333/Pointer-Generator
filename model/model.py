@@ -139,6 +139,7 @@ class Decoder(nn.Module):
             self.cov_loss.append(cov_loss)
 
     def gen_prob_get(self, context_vec, decoder_input, decoder_state):
+        """实现正确性存疑，可能是三个张量连接起来然后做一次全连接变换"""
         gen = self.p_gen_fc2(context_vec).reshape([self.batch_size, ]) + self.p_gen_fc1(decoder_input).reshape([self.batch_size, ]) + self.p_gen_fc3(decoder_state).reshape([self.batch_size, ])
         p_gen = torch.sigmoid(gen)
         self.gen_prob.append(p_gen)

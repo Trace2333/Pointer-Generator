@@ -3,6 +3,7 @@ import struct
 import json
 import string
 import pickle
+import torch
 import glob
 #from tensorflow.core.example import example_pb2
 """a = torch.randn([8, 20, 30])
@@ -91,7 +92,7 @@ example_to_json("../dataset/chunked/train_000.bin", "../dataset/train000.json")
 example_to_json("../dataset/chunked/train_001.bin", "../dataset/train001.json")
 example_to_json("../dataset/chunked/train_002.bin", "../dataset/train002.json")
 example_to_json("../dataset/chunked/train_003.bin", "../dataset/train003.json")"""
-with open("../dataset/word_id.pkl", "rb") as f:
+""""with open() as f:
     vocab = pickle.load(f)
 print(vocab)
 
@@ -107,4 +108,15 @@ for i in train:
     y.append(tokens[4].split())
     for sen in y:
         sen.insert(0, '<s>')
-    print(y)
+    print(y)"""""
+atten = torch.randn([2, 30])  # [batch_size, atten_len]
+vocab_dist = torch.randn([2, 10004])   # [batch_size, extended_vocab_size]
+vocab = torch.tensor(range(10004))
+dis = torch.tensor([[1, 0, 24, 234, 23, 14],  # 这个表示一句话的输入,每个标号表示那个时间步的
+                    [49, 100, 124, 123, 124, 5346]])
+vocab_dist.scatter_add(1, dis, atten)
+print(vocab_dist.size())
+
+with open("../dataset/oov_words.pkl", "rb") as f:
+    oov = pickle.load(f)
+print(oov)
