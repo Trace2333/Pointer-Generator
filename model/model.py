@@ -79,6 +79,7 @@ class Decoder(nn.Module):
         self.cov_loss = []
         self.gen_prob = []
         self.device = device
+        self.exteneded_size = 0
         self.weight_init()
 
     def lstm_compute(self, x):
@@ -110,6 +111,7 @@ class Decoder(nn.Module):
         else:
             e_t = self.tanh(encoder_features + decoder_features)
         attention = self.v.T * self.softmax(e_t)
+        self.attention_dists.append(attention)
         return attention   # [batch_size, atten_length]
 
     def context_vec_get(self, attention, encoder_outputs):
@@ -145,15 +147,25 @@ class Decoder(nn.Module):
         self.gen_prob.append(p_gen)
         return p_gen   # 直接返回的是当前时间步
 
-    def forward(self, x, y, encoder_in):
+    def forward(self, x, y, encoder_in, max_oov_nums, ids):
         """y for teacher forcing, encoder_in->[encoder_outputs, encoder_cell, encoder_state]
         ,x is embedding.外包装循环"""
+        self.extended_size = max_oov_nums
         decoder_state_t, decoder_cell_t = self.lstm_compute(x)
         attention_dist = self.attention_dist_get(encoder_in[2], decoder_state_t.squeeze(1))
         context_vec = self.context_vec_get(attention_dist, encoder_in[0])
         p_vocab = self.vocab_dist_get(context_vec, decoder_state_t.squeeze(1))
         gen_prob = self.gen_prob_get(context_vec, x, decoder_state_t)
-        return p_vocab
+        p_vocab = torch.stack(
+            [gen_prob1 * p_vocab1 for gen_prob1, p_vocab1 in zip(gen_prob.split(1, dim=0), p_vocab.split(1, dim=0))],
+            dim=0).squeeze(1)
+        attention_dist = torch.stack(
+            [(1 - gen_prob1) * atten for gen_prob1, atten in zip(gen_prob.split(1, dim=0), attention_dist.split(1, dim=0))],
+            dim=0).squeeze(1)
+        extended_zeros = torch.zeros([self.batch_size, self.extended_size]).to(self.device)
+        p = torch.cat((p_vocab, extended_zeros), dim=-1)
+        p.scatter_add(1, ids, attention_dist)
+        return p
 
     def init_zero_state(self):
         return torch.zeros([2, self.batch_size, self.hidden_size])
@@ -182,18 +194,19 @@ class PointerGenerator(nn.Module):
                                device=device)
         self.batch_size = batch_size
         self.device = device
+        self.vocab_size = vocab_size
         self.embw = nn.Embedding(vocab_size, embw_size)   # 随机生成词矩阵
 
-    def forward(self, x, y):   # y for teacher-forcing
-        x = torch.tensor(x).to(self.device)
-        y = torch.tensor(y).to(self.device)
+    def forward(self, x, oov_words, y, max_oov_nums):   # y for teacher-forcing
         encoder_input = self.embw(x)
         encoder_input_y = self.embw(y)
         encoder_outputs, encoder_cell_state, encoder_hidden_state = self.encoder.forward(encoder_input)
         encoder_in = [encoder_outputs, encoder_cell_state, encoder_hidden_state]
-        for token, y_token in zip(encoder_input.split(1, dim=1), encoder_input_y.split(1, dim=1)):
-            p = self.decoder.forward(token, y_token, encoder_in)
-
+        out = torch.zeros([self.batch_size, 1, self.vocab_size + max_oov_nums]).to(self.device)
+        for token, y_token, ids in zip(encoder_input.split(1, dim=1), encoder_input_y.split(1, dim=1), x.split(1, dim=1)):
+            p = self.decoder.forward(token, y_token, encoder_in, max_oov_nums, ids).unsqueeze(1)
+            out = torch.cat((out, p), dim=1)
+        return out
         # encoder的所有输入都集合到一个时间步中
 
 

@@ -114,9 +114,16 @@ vocab_dist = torch.randn([2, 10004])   # [batch_size, extended_vocab_size]
 vocab = torch.tensor(range(10004))
 dis = torch.tensor([[1, 0, 24, 234, 23, 14],  # 这个表示一句话的输入,每个标号表示那个时间步的
                     [49, 100, 124, 123, 124, 5346]])
-vocab_dist.scatter_add(1, dis, atten)
+vocab_dist = vocab_dist.scatter_add(1, dis, atten)
 print(vocab_dist.size())
 
 with open("../dataset/oov_words.pkl", "rb") as f:
     oov = pickle.load(f)
-print(oov)
+#print(oov)
+
+lossf = torch.nn.NLLLoss()
+out = torch.randn([4, 10, 6]).permute(0, 2, 1)   # batch_size, seg_len, classes
+tag = torch.randn([4, 10])
+#loss = lossf(out, tag)
+out = out.flatten(1)
+print(out.size())

@@ -49,7 +49,7 @@ def collate_fn(batch):
     articles = [back_tuple[0][0] for back_tuple in batch]   # NO PAD
     oov_words = [back_tuple[0][1] for back_tuple in batch]
     abstracts = [back_tuple[1][0] for back_tuple in batch]
-    max_oov_nums = [back_tuple[1][1] for back_tuple in batch]
+    max_oov_nums = max([len(oov) for oov in oov_words])
     return (articles, oov_words, abstracts, max_oov_nums)
 
 
