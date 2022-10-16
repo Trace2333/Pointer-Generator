@@ -49,7 +49,6 @@ trainer = pl.Trainer(fast_dev_run=False,
                      accelerator="gpu",
                      devices=1,
                      default_root_dir="./check_points",
-                     limit_train_batches=128,
                      max_epochs=10
                      )
 trainer.fit(model=pl_model, train_dataloaders=loader)

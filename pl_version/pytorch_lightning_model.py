@@ -55,9 +55,9 @@ class PlPointerGenerator(pl.LightningModule):
     def forward(self, x):
         return self.model(x)
 
-    def configure_callbacks(self):
+    """def configure_callbacks(self):
         callbacks = EarlyStopping(monitor="loss", mode='min')
-        return [callbacks]
+        return [callbacks]"""
 
     def configure_optimizers(self):
         if self.optim is "Adam":
