@@ -110,7 +110,8 @@ class Decoder(nn.Module):
             e_t = self.tanh(encoder_features + decoder_features + coverage_features)
         else:
             e_t = self.tanh(encoder_features + decoder_features)
-        attention = self.v.T * self.softmax(e_t)
+        e_t = self.v.T * e_t   # 重整计算一次
+        attention = self.softmax(e_t)
         self.attention_dists.append(attention)
         return attention   # [batch_size, atten_length]
 
@@ -176,7 +177,7 @@ class Decoder(nn.Module):
     def weight_init(self):
         for module in self.modules():
             if isinstance(module, nn.Linear):
-                nn.init.xavier_normal_(module.weight, gain=1)
+                nn.init.xavier_normal_(module.weight, gain=10)
 
 
 class PointerGenerator(nn.Module):

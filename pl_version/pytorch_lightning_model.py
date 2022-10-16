@@ -7,7 +7,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 
 class PlPointerGenerator(pl.LightningModule):
-    def __init__(self, torch_model, lr, batch_size, if_warm_up, LR_scheduler, optim_type, use_wandb=False, use_tensorboard=False):
+    def __init__(self, torch_model, lr, batch_size, if_warm_up, LR_scheduler, optim_type, use_wandb=False, use_tensorboard=False, debug=False):
         """Init the pl model"""
         super(PlPointerGenerator, self).__init__()
         self.model = torch_model
@@ -19,7 +19,10 @@ class PlPointerGenerator(pl.LightningModule):
         self.use_wandb = use_wandb
         self.use_tensorboard = use_tensorboard
         self.lossfun = None
+        self.debug = debug
         self.loss_function_init()
+        self.wandb_init()
+
     def training_step(self, batch, batch_idx):
         """batch : (articles, oov_words, abstracts, max_oov_nums)"""
         article_ids, oov_words, abstracts_ids, max_oov_nums = batch
@@ -30,6 +33,14 @@ class PlPointerGenerator(pl.LightningModule):
         abstracts_ids = torch.tensor(abstracts_ids).to(self.device).flatten(1)
         model_out = self.model(article_ids, oov_words, abstracts_ids, max_oov_nums)
         loss = self.lossfun(model_out[:, 1:, :].permute(0, 2, 1), abstracts_ids)
+
+        wandb.log({"loss_gen": loss.item()})
+        if self.debug is not None and self.debug is True:
+            for name, parms in self.model.named_parameters():  # debug时使用，可视化每一个层的grad与weight
+                wandb.log({f"{name} Weight:": torch.mean(parms.data)})
+                if parms.grad is not None:
+                    wandb.log({f"{name} Grad_Value:": torch.mean(parms.grad)})
+
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -64,11 +75,8 @@ class PlPointerGenerator(pl.LightningModule):
         if self.use_wandb is True:
             wandb.login(host="http://47.108.152.202:8080",
                 key="local-86eb7fd9098b0b6aa0e6ddd886a989e62b6075f0")
-            wandb.init(project="Kaggle_english_learning")
-            if self.if_online is False:
-                os.system("wandb offline")
-            else:
-                os.system("wandb online")
+            wandb.init(project="Pointer-Generator")
+            os.system("wandb online")
 
     def loss_function_init(self):
         self.lossfun = torch.nn.NLLLoss()

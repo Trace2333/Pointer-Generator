@@ -40,8 +40,9 @@ pl_model = PlPointerGenerator(
     if_warm_up=False,
     LR_scheduler="step",
     optim_type="Adam",
-    use_wandb=False,
-    use_tensorboard=False
+    use_wandb=True,
+    use_tensorboard=False,
+    debug=True,
 )
 
 trainer = pl.Trainer(fast_dev_run=False,
@@ -50,5 +51,5 @@ trainer = pl.Trainer(fast_dev_run=False,
                      default_root_dir="./check_points",
                      limit_train_batches=128,
                      max_epochs=10
-                        )
+                     )
 trainer.fit(model=pl_model, train_dataloaders=loader)
