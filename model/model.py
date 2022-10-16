@@ -57,10 +57,10 @@ class Decoder(nn.Module):
         self.W_s = nn.Linear(hidden_size, attention_size, bias=True)
         self.W_h = nn.Linear(hidden_size, attention_size)
         self.w_c = nn.Linear(attention_size, attention_size, bias=False)
-        self.decode_fc1 = nn.Linear(hidden_size + attention_size, hidden_size * 2, bias=True)
+        self.decode_fc1 = nn.Linear(hidden_size * 3, hidden_size * 2, bias=True)
         self.decode_fc2 = nn.Linear(hidden_size * 2, vocab_size, bias=True)   # 线性层放大可能损失信息
         self.p_gen_fc1 = nn.Linear(embw_size, 1, bias=False)
-        self.p_gen_fc2 = nn.Linear(attention_size, 1, bias=False)
+        self.p_gen_fc2 = nn.Linear(hidden_size * 2, 1, bias=False)
         self.p_gen_fc3 = nn.Linear(hidden_size, 1, bias=False)
         self.softmax = nn.Softmax(dim=-1)
         self.tanh = nn.Tanh()
@@ -120,7 +120,7 @@ class Decoder(nn.Module):
         attention = attention.split(1, dim=1)   # split on the dim of attention_length
         context_vec = torch.tensor([(i.squeeze(1) * j).tolist() for i, j in zip(encoder_outputs, attention)]).permute(1, 0, 2).to(self.device)
         context_vec = torch.sum(context_vec, dim=1)
-        return context_vec   # weighted sum of the encoder_outputs
+        return context_vec   # weighted sum of the encoder_outputs, [batch_size, hidden_size * 2]
 
     def vocab_dist_get(self, context_vec, decoder_state):
         """当前时间步"""
@@ -208,6 +208,7 @@ class PointerGenerator(nn.Module):
             p = self.decoder.forward(token, y_token, encoder_in, max_oov_nums, ids).unsqueeze(1)
             out = torch.cat((out, p), dim=1)
         return out
+
         # encoder的所有输入都集合到一个时间步中
 
 

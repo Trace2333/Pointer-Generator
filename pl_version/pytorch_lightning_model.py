@@ -34,13 +34,13 @@ class PlPointerGenerator(pl.LightningModule):
         model_out = self.model(article_ids, oov_words, abstracts_ids, max_oov_nums)
         loss = self.lossfun(model_out[:, 1:, :].permute(0, 2, 1), abstracts_ids)
 
-        wandb.log({"loss_gen": loss.item()})
+        """wandb.log({"loss_gen": loss.item()})
         if self.debug is not None and self.debug is True:
             for name, parms in self.model.named_parameters():  # debug时使用，可视化每一个层的grad与weight
                 wandb.log({f"{name} Weight:": torch.mean(parms.data)})
                 if parms.grad is not None:
                     wandb.log({f"{name} Grad_Value:": torch.mean(parms.grad)})
-
+"""
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -77,7 +77,8 @@ class PlPointerGenerator(pl.LightningModule):
                 key="local-86eb7fd9098b0b6aa0e6ddd886a989e62b6075f0")
             wandb.init(project="Pointer-Generator")
             os.system("wandb online")
-
+        if self.use_wandb is False:
+            os.system("wandb offline")
     def loss_function_init(self):
         self.lossfun = torch.nn.NLLLoss()
         return

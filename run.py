@@ -11,12 +11,12 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = PointerGenerator(
     if_pointer=True,
     if_coverage=True,
-    input_size=300,
-    hidden_size=200,
+    input_size=50,
+    hidden_size=40,
     vocab_size=80200,
     batch_size=8,
-    embw_size=300,
-    attention_size=400,
+    embw_size=50,
+    attention_size=50,
     device=device
 )
 dataset = DatasetBase(
@@ -36,19 +36,21 @@ loader = DataLoader(
 pl_model = PlPointerGenerator(
     torch_model=model,
     lr=1e-3,
-    batch_size=8,
+    batch_size=16,
     if_warm_up=False,
     LR_scheduler="step",
     optim_type="Adam",
-    use_wandb=True,
+    use_wandb=False,
     use_tensorboard=False,
     debug=True,
 )
 
-trainer = pl.Trainer(fast_dev_run=False,
+trainer = pl.Trainer(fast_dev_run=5,
                      accelerator="gpu",
                      devices=1,
                      default_root_dir="./check_points",
-                     max_epochs=10
+                     max_epochs=10,
                      )
-trainer.fit(model=pl_model, train_dataloaders=loader)
+with torch.autograd.profiler.profile(use_cuda=True) as prof:
+    trainer.fit(model=pl_model, train_dataloaders=loader)
+print(prof.key_averages().table(sort_by="self_cpu_time_total"))
