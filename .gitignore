@@ -6,3 +6,4 @@ __pyche__
 *.txt
 ./utils/*.txt
 ./utils/*.pkl
+wandb/
