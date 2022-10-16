@@ -90,8 +90,8 @@ class Decoder(nn.Module):
         (out, (decoder_state, decoder_cell)) = self.lstm(x, (self.last_hidden_state, self.last_cell_state))
         decoder_state = decoder_state.permute(1, 0, 2)
         decoder_cell = decoder_cell.permute(1, 0, 2)
-        self.last_hidden_state = decoder_state.permute(1, 0, 2)
-        self.last_cell_state = decoder_cell.permute(1, 0, 2)
+        self.last_hidden_state = decoder_state.permute(1, 0, 2).data
+        self.last_cell_state = decoder_cell.permute(1, 0, 2).data
         return decoder_state, decoder_cell
 
     def attention_dist_get(self, encoder_hidden_state, decoder_state):
@@ -100,7 +100,7 @@ class Decoder(nn.Module):
         encoder_features = self.W_h(encoder_hidden_state)
         decoder_features = self.W_s(decoder_state)
         if self.v is None:
-            self.v = nn.Parameter(torch.randn([self.atten_size])).to(self.device)
+            self.v = nn.Parameter(torch.randn([self.atten_size]), requires_grad=True).to(self.device)
         if len(self.coverages) is not 0 and self.if_coverage is True:
             coverage_features = self.w_c(self.coverages[-1])
             e_t = self.tanh(encoder_features + decoder_features + coverage_features)
