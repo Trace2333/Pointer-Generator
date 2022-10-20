@@ -14,7 +14,7 @@ model = PointerGenerator(
     input_size=50,
     hidden_size=40,
     vocab_size=50200,
-    batch_size=8,
+    batch_size=16,
     embw_size=50,
     attention_size=50,
     device=device
@@ -27,7 +27,7 @@ dataset = DatasetBase(
     )
 loader = DataLoader(
         dataset=dataset,
-        batch_size=8,
+        batch_size=16,
         shuffle=True,
         drop_last=True,
         num_workers=0,
@@ -35,12 +35,12 @@ loader = DataLoader(
 )
 pl_model = PlPointerGenerator(
     torch_model=model,
-    lr=1e-3,
+    lr=1e-2,
     batch_size=16,
     if_warm_up=False,
     LR_scheduler="step",
     optim_type="Adam",
-    use_wandb=False,
+    use_wandb=True,
     use_tensorboard=False,
     debug=True,
 )
