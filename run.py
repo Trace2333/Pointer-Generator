@@ -51,6 +51,7 @@ trainer = pl.Trainer(fast_dev_run=20,
                      default_root_dir="./check_points",
                      max_epochs=10,
                      )
-with torch.autograd.profiler.profile(use_cuda=True) as prof:
+trainer.fit(model=pl_model, train_dataloaders=loader)
+"""with torch.autograd.profiler.profile(use_cuda=True) as prof:
     trainer.fit(model=pl_model, train_dataloaders=loader)
-print(prof.key_averages().table(sort_by="self_cpu_time_total"))
+print(prof.key_averages().table(sort_by="self_cpu_time_total"))"""
