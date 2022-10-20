@@ -29,11 +29,12 @@ class PlPointerGenerator(pl.LightningModule):
         article_ids, oov_words, abstracts_ids, max_oov_nums = batch
         article_ids = [torch.tensor(i).to(self.device) for i in article_ids]
         article_ids = pad_sequence(article_ids, batch_first=True, padding_value=1)
-        abstracts_ids = [torch.tensor(reduce(list.__add__, i)) for i in abstracts_ids]
+        abstracts_ids = [torch.tensor(reduce(list.__add__, i), dtype=torch.int64) for i in abstracts_ids]
         abstracts_ids = pad_sequence(abstracts_ids, padding_value=1, batch_first=True)
         abstracts_ids = abstracts_ids.to(self.device).flatten(1)
         model_out = self.model(article_ids, oov_words, abstracts_ids, max_oov_nums)
-        loss = self.lossfun(model_out[:, 1:, :].permute(0, 2, 1), abstracts_ids)
+        #loss = self.lossfun(model_out[:, 1:, :].permute(0, 2, 1), abstracts_ids)
+        loss = self.loss_as_nll(model_out[:, 1:, :].permute(0, 2, 1), abstracts_ids)
         """wandb.log({"loss_gen": loss.item()})
         if self.debug is not None and self.debug is True:
             for name, parms in self.model.named_parameters():  # debug时使用，可视化每一个层的grad与weight
@@ -83,7 +84,8 @@ class PlPointerGenerator(pl.LightningModule):
         self.lossfun = torch.nn.NLLLoss()
         return
 
-    """def lossfun(self, p):
-        loss = torch.sum(-torch.log(p + 1e-12)) / self.model.vocab_size
-        return loss"""
+    def loss_as_nll(self, p, target):
+        loss_before = torch.gather(p, 1, target.unsqueeze(1)).squeeze()
+        loss = torch.sum(-torch.log(loss_before + 1e-12)) / self.model.vocab_size
+        return loss
 

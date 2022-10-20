@@ -121,16 +121,13 @@ with open("../dataset/oov_words.pkl", "rb") as f:
     oov = pickle.load(f)
 #print(oov)
 
-lossf = torch.nn.NLLLoss()
-out = torch.randn([4, 10, 6]).permute(0, 2, 1)   # batch_size, seg_len, classes
-tag = torch.randn([4, 10])
-#loss = lossf(out, tag)
-out = out.flatten(1)
+out = torch.randn([4, 10, 300])
+tag = torch.ones([4, 10], dtype=torch.int64)
 print(out.size())
-
-test = torch.randn([16, 300])
+s = torch.gather(out, 1, tag.unsqueeze(1)).squeeze()
+print(s.size())
 soft = torch.nn.Softmax(dim=-1)
-test = soft(test)
-loss = -torch.log(test + 1e-12)
+s = soft(s)
+loss = -torch.log(s + 1e-12)
 loss = torch.sum(loss) / 300
 print(loss)
