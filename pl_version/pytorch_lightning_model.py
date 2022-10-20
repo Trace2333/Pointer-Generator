@@ -31,10 +31,9 @@ class PlPointerGenerator(pl.LightningModule):
         article_ids = pad_sequence(article_ids, batch_first=True, padding_value=1)
         abstracts_ids = [torch.tensor(reduce(list.__add__, i)) for i in abstracts_ids]
         abstracts_ids = pad_sequence(abstracts_ids, padding_value=1, batch_first=True)
-        abstracts_ids = torch.tensor(abstracts_ids).to(self.device).flatten(1)
+        abstracts_ids = abstracts_ids.to(self.device).flatten(1)
         model_out = self.model(article_ids, oov_words, abstracts_ids, max_oov_nums)
         loss = self.lossfun(model_out[:, 1:, :].permute(0, 2, 1), abstracts_ids)
-        loss = -loss
         """wandb.log({"loss_gen": loss.item()})
         if self.debug is not None and self.debug is True:
             for name, parms in self.model.named_parameters():  # debug时使用，可视化每一个层的grad与weight

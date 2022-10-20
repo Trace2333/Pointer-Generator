@@ -45,7 +45,7 @@ pl_model = PlPointerGenerator(
     debug=True,
 )
 
-trainer = pl.Trainer(fast_dev_run=20,
+trainer = pl.Trainer(fast_dev_run=False,
                      accelerator="gpu",
                      devices=1,
                      default_root_dir="./check_points",
