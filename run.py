@@ -13,7 +13,7 @@ model = PointerGenerator(
     if_coverage=True,
     input_size=50,
     hidden_size=40,
-    vocab_size=80200,
+    vocab_size=50200,
     batch_size=8,
     embw_size=50,
     attention_size=50,
@@ -45,7 +45,7 @@ pl_model = PlPointerGenerator(
     debug=True,
 )
 
-trainer = pl.Trainer(fast_dev_run=5,
+trainer = pl.Trainer(fast_dev_run=20,
                      accelerator="gpu",
                      devices=1,
                      default_root_dir="./check_points",

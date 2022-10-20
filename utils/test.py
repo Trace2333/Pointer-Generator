@@ -127,3 +127,10 @@ tag = torch.randn([4, 10])
 #loss = lossf(out, tag)
 out = out.flatten(1)
 print(out.size())
+
+test = torch.randn([16, 300])
+soft = torch.nn.Softmax(dim=-1)
+test = soft(test)
+loss = -torch.log(test + 1e-12)
+loss = torch.sum(loss) / 300
+print(loss)

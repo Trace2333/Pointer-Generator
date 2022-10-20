@@ -246,7 +246,7 @@ class Data(object):
 
 
 if __name__ == '__main__':
-    vocab_process = Vocab("../dataset/vocab", max_size=80000)
+    vocab_process = Vocab("../dataset/vocab", max_size=50000)
     vocab_process.write_metadata("../dataset/id_word.pkl")
     vocab_process.write_word_to_id("../dataset/word_id.pkl")
     data = Data(
