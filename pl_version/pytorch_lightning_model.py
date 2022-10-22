@@ -1,7 +1,6 @@
 import os
 import torch.nn
 import wandb
-from torch.nn.utils.rnn import pad_sequence
 import pytorch_lightning as pl
 from functools import reduce
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -26,17 +25,12 @@ class PlPointerGenerator(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         """batch : (articles, oov_words, abstracts, max_oov_nums)"""
-        article_ids, oov_words, abstracts_ids, max_oov_nums = batch
-        article_ids = [torch.tensor(i).to(self.device) for i in article_ids]
-        article_ids = pad_sequence(article_ids, batch_first=True, padding_value=1)
-        abstracts_ids = [torch.tensor(reduce(list.__add__, i), dtype=torch.int64) for i in abstracts_ids]
-        abstracts_ids = pad_sequence(abstracts_ids, padding_value=1, batch_first=True)
-        abstracts_ids = abstracts_ids.to(self.device).flatten(1)
-        model_out = self.model(article_ids, oov_words, abstracts_ids, max_oov_nums)
+        article_ids, oov_words, abstracts_ids, max_oov_nums, seq_lens = batch
+        model_out = self.model(article_ids, oov_words, abstracts_ids, max_oov_nums, seq_lens)
         #loss = self.lossfun(model_out[:, 1:, :].permute(0, 2, 1), abstracts_ids)
         loss = self.loss_as_nll(model_out[:, 1:, :].permute(0, 2, 1), abstracts_ids)
-        wandb.log({"loss_gen": loss.item()})
-        if self.debug is not None and self.debug is True:
+        if self.debug is not None and self.debug is True and self.use_wandb is True:
+            wandb.log({"loss_gen": loss.item()})
             for name, parms in self.model.named_parameters():  # debug时使用，可视化每一个层的grad与weight
                 wandb.log({f"{name} Weight:": torch.mean(parms.data)})
                 if parms.grad is not None:

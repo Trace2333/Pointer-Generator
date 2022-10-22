@@ -1,11 +1,17 @@
+import torch
 import pickle
-from torch.nn.utils.rnn import pad_sequence
+from functools import reduce
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
+from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pack_sequence, pad_packed_sequence
+
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
 class DatasetBase(Dataset):
     """包装数据，需要包装最后的padding mask与OOV词汇"""
-    def __init__(self, input_ids_path, y_path, vocab_path, oov_words_path):
+    def __init__(self, input_ids_path, y_path, vocab_path, oov_words_path, device):
         super(DatasetBase, self).__init__()
         with open(input_ids_path, "rb") as f1:
             self.ids = pickle.load(f1)
@@ -18,6 +24,7 @@ class DatasetBase(Dataset):
         with open(oov_words_path, "rb") as f4:
             oov_words = pickle.load(f4)
             self.oov_words = oov_words
+        self.device = device
 
     def __len__(self):
         return len(self.ids)
@@ -50,7 +57,13 @@ def collate_fn(batch):
     oov_words = [back_tuple[0][1] for back_tuple in batch]
     abstracts = [back_tuple[1][0] for back_tuple in batch]
     max_oov_nums = max([len(oov) for oov in oov_words])
-    return (articles, oov_words, abstracts, max_oov_nums)
+    seq_lengths = torch.tensor([len(i) for i in articles], dtype=torch.int64).cpu()
+    article_ids = [torch.tensor(i).to(device) for i in articles]
+    article_ids = pad_sequence(article_ids, batch_first=True, padding_value=1)
+    abstracts_ids = [torch.tensor(reduce(list.__add__, i), dtype=torch.int64) for i in abstracts]
+    abstracts_ids = pad_sequence(abstracts_ids, padding_value=1, batch_first=True)
+    abstracts_ids = abstracts_ids.to(device).flatten(1)
+    return (article_ids, oov_words, abstracts_ids, max_oov_nums, seq_lengths)
 
 
 if __name__ == '__main__':

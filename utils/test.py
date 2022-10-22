@@ -6,6 +6,7 @@ import pickle
 import torch
 import glob
 #from tensorflow.core.example import example_pb2
+from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pack_sequence, pad_packed_sequence
 """a = torch.randn([8, 20, 30])
 b = torch.cat((a[0], a[1]), dim=-1)
 print(b.size())
@@ -112,8 +113,8 @@ for i in train:
 atten = torch.randn([2, 30])  # [batch_size, atten_len]
 vocab_dist = torch.randn([2, 10004])   # [batch_size, extended_vocab_size]
 vocab = torch.tensor(range(10004))
-dis = torch.tensor([[1, 0, 24, 234, 23, 14],  # 这个表示一句话的输入,每个标号表示那个时间步的
-                    [49, 100, 124, 123, 124, 5346]])
+dis = torch.tensor([1, 0, 24, 234, 23, 14]  # 这个表示一句话的输入,每个标号表示那个时间步的
+                    )
 vocab_dist = vocab_dist.scatter_add(1, dis, atten)
 print(vocab_dist.size())
 
@@ -131,3 +132,4 @@ s = soft(s)
 loss = -torch.log(s + 1e-12)
 loss = torch.sum(loss) / 300
 print(loss)
+

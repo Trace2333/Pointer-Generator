@@ -16,7 +16,7 @@ model = PointerGenerator(
     vocab_size=50200,
     batch_size=16,
     embw_size=50,
-    attention_size=50,
+    attention_size=80,
     device=device
 )
 dataset = DatasetBase(
@@ -24,6 +24,7 @@ dataset = DatasetBase(
         y_path="./dataset/y.pkl",
         vocab_path="./dataset/word_id.pkl",
         oov_words_path="./dataset/oov_words.pkl",
+        device=device
     )
 loader = DataLoader(
         dataset=dataset,
@@ -40,7 +41,7 @@ pl_model = PlPointerGenerator(
     if_warm_up=False,
     LR_scheduler="step",
     optim_type="Adam",
-    use_wandb=True,
+    use_wandb=False,
     use_tensorboard=False,
     debug=True,
 )
