@@ -88,31 +88,30 @@ class Decoder(nn.Module):
         (out, (decoder_state, decoder_cell)) = self.lstm(x, (self.last_hidden_state, self.last_cell_state))
         self.last_hidden_state = decoder_state.data
         self.last_cell_state = decoder_cell.data
-        return decoder_state.permute(1, 0, 2), decoder_cell.permute(1, 0, 2)
+        decoder_cell = decoder_cell.permute(1, 0, 2)
+        decoder_state = decoder_state.permute(1, 0, 2)
+        return decoder_state, decoder_cell
 
     def attention_dist_get(self, encoder_hidden_state, decoder_state):
         """当前时间步的decoder out"""
         # 每一个时间步都会产生一个attention distribution,最后的coverage需要将所有的attention串起来
         # decoder state需要连接cell和state
         b, l, n = list(encoder_hidden_state.size())
+        if self.coverages is None or self.coverages.size()[1] != l:
+            self.coverages = torch.zeros([b, l]).to(self.device)
         encoder_features = self.W_h(encoder_hidden_state).view(-1, n)
         decoder_features = self.W_s(decoder_state).view(-1, n)
         decoder_features = decoder_features.unsqueeze(1).expand(b, l, self.atten_size).reshape(-1, n)   # 用contiguous节省内存
-        if self.coverages is None and self.if_coverage is True:   # 初始化coverage
-            self.coverages = torch.zeros([b, l]).to(self.device)
-            coverage_input = self.coverages.view(-1, 1)
-            coverage_features = self.w_c(coverage_input)
-            e_t = self.tanh(encoder_features + decoder_features + coverage_features)
-        elif self.coverages is not None and self.if_coverage is True:   # 用coverage
+        if self.if_coverage is True:   # 初始化coverage
             coverage_input = self.coverages.view(-1, 1)
             coverage_features = self.w_c(coverage_input)
             e_t = self.tanh(encoder_features + decoder_features + coverage_features)
         else:   # 不用coverage
             e_t = self.tanh(encoder_features + decoder_features)
-        e_t = self.v(e_t).view(-1, l)   # 重整计算一次
-        attention = self.softmax(e_t).unsqueeze(1)
+        re_e_t = self.v(e_t).view(-1, l)   # 重整计算一次
+        attention = self.softmax(re_e_t).unsqueeze(1)
         self.attention_dists.append(attention)
-        self.coverages += attention.squeeze(1).detach()
+        self.coverages = self.coverages + attention.squeeze(1).data
         return attention   # [batch_size, atten_length]
 
     def context_vec_get(self, attention, encoder_outputs):
