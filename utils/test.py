@@ -110,7 +110,7 @@ for i in train:
     for sen in y:
         sen.insert(0, '<s>')
     print(y)"""""
-atten = torch.randn([2, 30])  # [batch_size, atten_len]
+"""atten = torch.randn([2, 30])  # [batch_size, atten_len]
 vocab_dist = torch.randn([2, 10004])   # [batch_size, extended_vocab_size]
 vocab = torch.tensor(range(10004))
 dis = torch.tensor([1, 0, 24, 234, 23, 14]  # 这个表示一句话的输入,每个标号表示那个时间步的
@@ -132,4 +132,27 @@ s = soft(s)
 loss = -torch.log(s + 1e-12)
 loss = torch.sum(loss) / 300
 print(loss)
+"""
 
+
+from rouge import Rouge
+import string
+pred = torch.randint(0, 10, (16, 20)).tolist()
+test = torch.randint(0, 10, (16, 20)).tolist()
+f1s = []
+f2s = []
+for sen in pred:
+    f1 = ""
+    for i in sen:
+        f1 += str(i)+ " "
+    f1s.append(f1)
+for sen in test:
+    f2 = ""
+    for i in sen:
+        f2 += str(i)+ " "
+    f2s.append(f2)
+rouge = Rouge()
+scores = rouge.get_scores(f1s, f2s, avg=True)
+r1_f = scores[0]["rouge-1"]["f"]
+r2_f = scores[0]["rouge-2"]["f"]
+rl_f = scores[0]["rouge-l"]["f"]

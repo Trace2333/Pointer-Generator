@@ -3,7 +3,7 @@ import torch.nn
 import torch
 import wandb
 import pytorch_lightning as pl
-from functools import reduce
+from rouge import Rouge
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 
@@ -23,6 +23,7 @@ class PlPointerGenerator(pl.LightningModule):
         self.debug = debug
         self.loss_function_init()
         self.wandb_init()
+        self.rouge = Rouge()
 
     def training_step(self, batch, batch_idx):
         """batch : (articles, oov_words, abstracts, max_oov_nums)"""
@@ -30,12 +31,24 @@ class PlPointerGenerator(pl.LightningModule):
         model_out = self.model(article_ids, oov_words, abstracts_ids, max_oov_nums, seq_lens)
         #loss = self.lossfun(model_out[:, 1:, :].permute(0, 2, 1), abstracts_ids)
         loss = self.loss_as_nll(model_out[:, 1:, :].permute(0, 2, 1), abstracts_ids)
+
+        # metrics compute
+        scores = self.rouge_compute(model_out, abstracts_ids)
+        r1_f = scores[0]["rouge-1"]["f"]
+        r2_f = scores[0]["rouge-2"]["f"]
+        rl_f = scores[0]["rouge-l"]["f"]
+
         if self.debug is not None and self.debug is True and self.use_wandb is True:
             wandb.log({"loss_gen": loss.item()})
-            for name, parms in self.model.named_parameters():  # debug时使用，可视化每一个层的grad与weight
+            wandb.log({"Rouge1": r1_f})
+            wandb.log({"Rouge2": r2_f})
+            wandb.log({"RougeL": rl_f})
+            # debug
+            """for name, parms in self.model.named_parameters():  # debug时使用，可视化每一个层的grad与weight
                 wandb.log({f"{name} Weight:": torch.mean(parms.data)})
                 if parms.grad is not None:
-                    wandb.log({f"{name} Grad_Value:": torch.mean(parms.grad)})
+                    wandb.log({f"{name} Grad_Value:": torch.mean(parms.grad)})"""
+
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -83,3 +96,24 @@ class PlPointerGenerator(pl.LightningModule):
         loss = torch.sum(-torch.log(loss_before + 1e-12)) / self.model.batch_size
         return loss
 
+    def rouge_compute(self, pred, y):
+        pred_ids = pred[:, 1:, :].argmax(-1).tolist()
+        y_ids = y.tolist()
+
+        f1s = []
+        f2s = []
+
+        for sen in pred_ids:
+            f1 = ""
+            for i in sen:
+                f1 += str(i) + " "
+            f1s.append(f1)
+
+        for sen in y_ids:
+            f2 = ""
+            for i in sen:
+                f2 += str(i) + " "
+            f2s.append(f2)
+
+        scores = self.rouge.get_scores(f1s, f2s, avg=True)
+        return scores

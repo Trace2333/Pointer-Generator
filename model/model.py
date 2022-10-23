@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from functools import reduce
-from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
 class Encoder(nn.Module):
@@ -78,10 +78,10 @@ class Decoder(nn.Module):
         self.last_hidden_state = None
         self.if_coverage = if_coverage
         self.batch_size = batch_size
-        self.attention_dists = []
+        #self.attention_dists = []
         self.coverages = None
-        self.cov_loss = []
-        self.gen_prob = []
+        #self.cov_loss = []
+        #self.gen_prob = []
         self.device = device
         self.exteneded_size = 0
         self.weight_init()
@@ -123,7 +123,7 @@ class Decoder(nn.Module):
 
         re_e_t = self.v(e_t).view(-1, l)   # 重整计算一次
         attention = self.softmax(re_e_t).unsqueeze(1)
-        self.attention_dists.append(attention)
+        #self.attention_dists.append(attention)
         self.coverages = self.coverages + attention.squeeze(1).data
 
         return attention   # [batch_size, atten_length]
@@ -149,7 +149,7 @@ class Decoder(nn.Module):
         for atten_dis, cov in zip(self.attention_dists, self.coverages):
             min_one = torch.minimum(atten_dis, cov)
             cov_loss = torch.sum(min_one, dim=-1)
-            self.cov_loss.append(cov_loss)
+            #self.cov_loss.append(cov_loss)
 
     def gen_prob_get(self, context_vec, decoder_input, decoder_state_cell):
         """实现正确性存疑，可能是三个张量连接起来然后做一次全连接变换"""
@@ -157,7 +157,7 @@ class Decoder(nn.Module):
         p_gen = self.p_gen_fc(gen)
         p_gen = torch.sigmoid(p_gen)
 
-        self.gen_prob.append(p_gen)
+        #self.gen_prob.append(p_gen)
 
         return p_gen   # 直接返回的是当前时间步
 
