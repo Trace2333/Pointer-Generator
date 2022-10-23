@@ -52,6 +52,7 @@ class PlPointerGenerator(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
+
         return
 
     def test_step(self, batch, batch_idx):

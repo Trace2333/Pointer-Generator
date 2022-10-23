@@ -136,7 +136,6 @@ print(loss)
 
 
 from rouge import Rouge
-import string
 pred = torch.randint(0, 10, (16, 20)).tolist()
 test = torch.randint(0, 10, (16, 20)).tolist()
 f1s = []

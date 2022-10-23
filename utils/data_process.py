@@ -3,8 +3,8 @@ import pickle
 from tqdm import tqdm
 import json
 
-#import struct
-#from tensorflow.core.example import example_pb2
+import struct
+from tensorflow.core.example import example_pb2
 
 # <s> and </s> are used in the data files to segment the abstracts into sentences. They don't receive vocab ids.
 SENTENCE_START = '<s>'
@@ -79,12 +79,13 @@ class Vocab(object):
 
 
 class Data(object):
-    def __init__(self, if_chucked, vocab_file, file_or_file_list=None):
+    def __init__(self, if_chucked, vocab_file, file_or_file_list=None, bin_files=None):
         """
         用来做综合数据处理，将数据从tensorflow Example处理为ids并存储
         :param if_chucked: True or False
         :param vocab_file: vocab文件路径
         :param file_or_file_list: 待处理的文件列表或文件
+        :param bin_files: 待处理的文件
         """
         if if_chucked is False:   # 统一分为两种情况做处理
             with open(file_or_file_list, "r") as f1:
@@ -99,9 +100,13 @@ class Data(object):
         with open(vocab_file, 'rb') as f3:
             self.vocab = pickle.load(f3)
         self.vocab_len = len(self.vocab)
-
+        if bin_files is not None and isinstance(bin_files, list):
+            for i in bin_files:
+                self.example_to_json(i, i.replace("bin", "json"))
+        if bin_files is not None and isinstance(bin_files, str):
+            self.example_to_json(bin_files, bin_files.replace("bin", "json"))
     # 需要导入tensorflow,因此预先注释掉
-    """def example_to_json(filename, target_filename):
+    def example_to_json(self, filename, target_filename):
         json_data = {}
         count = 0
         with open(filename, "rb") as f1:
@@ -121,7 +126,7 @@ class Data(object):
                 per_iter['article'] = article
                 print("Precessed", count, "example")
         with open(target_filename, "w") as f2:
-            json.dump(json_data, f2)"""
+            json.dump(json_data, f2)
 
     def abstract_extract(self):
         """提取 ”摘要“
@@ -252,9 +257,8 @@ if __name__ == '__main__':
     data = Data(
         if_chucked=True,
         vocab_file="../dataset/word_id.pkl",
-        file_or_file_list=["../dataset/train000.json",
-                           "../dataset/train001.json",
-                           "../dataset/train002.json",
-                           "../dataset/train003.json"]
+        file_or_file_list=["../dataset/train.json",
+                           ],
+        #bin_files="../dataset/train.bin"
     )
     data.data_process()
