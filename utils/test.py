@@ -153,6 +153,6 @@ for sen in test:
     f2s.append(f2)
 rouge = Rouge()
 scores = rouge.get_scores(f1s, f2s, avg=True)
-r1_f = scores[0]["rouge-1"]["f"]
-r2_f = scores[0]["rouge-2"]["f"]
-rl_f = scores[0]["rouge-l"]["f"]
+r1_f = scores["rouge-1"]["f"]
+r2_f = scores["rouge-2"]["f"]
+rl_f = scores["rouge-l"]["f"]

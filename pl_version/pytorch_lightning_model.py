@@ -34,9 +34,9 @@ class PlPointerGenerator(pl.LightningModule):
 
         # metrics compute
         scores = self.rouge_compute(model_out, abstracts_ids)
-        r1_f = scores[0]["rouge-1"]["f"]
-        r2_f = scores[0]["rouge-2"]["f"]
-        rl_f = scores[0]["rouge-l"]["f"]
+        r1_f = scores["rouge-1"]["f"]
+        r2_f = scores["rouge-2"]["f"]
+        rl_f = scores["rouge-l"]["f"]
 
         if self.debug is not None and self.debug is True and self.use_wandb is True:
             wandb.log({"loss_gen": loss.item()})
