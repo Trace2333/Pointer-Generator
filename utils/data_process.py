@@ -79,32 +79,110 @@ class Vocab(object):
 
 
 class Data(object):
-    def __init__(self, if_chucked, vocab_file, file_or_file_list=None, bin_files=None):
+    def __init__(self, if_chucked, vocab_file, num_chucked=None):
         """
         用来做综合数据处理，将数据从tensorflow Example处理为ids并存储
-        :param if_chucked: True or False
+        :param if_chucked: True or False, chucked的时候自动读内置的文件表而不是外部输入，
+            不使用chucked数据的时候需要指定输入的chucked数量
         :param vocab_file: vocab文件路径
-        :param file_or_file_list: 待处理的文件列表或文件
-        :param bin_files: 待处理的文件
         """
-        if if_chucked is False:   # 统一分为两种情况做处理
-            with open(file_or_file_list, "r") as f1:
-                self.file_set =json.load(f1)
-        if if_chucked is True and file_or_file_list is not None:
-            self.file_set = []
-            for filename in file_or_file_list:
-                if os.path.exists(filename):
-                    with open(filename, "r") as f2:
-                        self.file_set.append(json.load(f2))
+        self.bin_files = [
+            "../dataset/train.bin",
+            "../dataset/val.bin",
+            "../dataset/test.bin",
+        ]
+
+        self.chucked_bin_files = os.listdir("../dataset/chunked")
+        chucked_bin_files = []
+        for i in range(len(self.chucked_bin_files)):
+            if "bin" in self.chucked_bin_files[i]:
+                chucked_bin_files.append(self.chucked_bin_files[i])
+        self.chucked_bin_files = chucked_bin_files
+
+        for i in range(len(self.chucked_bin_files)):
+            self.chucked_bin_files[i] = "../dataset/chunked/" + self.chucked_bin_files[i]
+
+        self.chunked_train_bin_files = []
+        self.chunked_test_bin_files = []
+        self.chunked_val_bin_files = []
+        for i in self.chucked_bin_files:
+            if "train" in i:
+                self.chunked_train_bin_files.append(i)
+            if "test" in i:
+                self.chunked_test_bin_files.append(i)
+            if "val" in i:
+                self.chunked_val_bin_files.append(i)
+
         self.if_chucked = if_chucked
+        self.num_chucked = num_chucked
+        self.if_bin_to_json = False
+
+        if self.if_chucked is False and self.if_bin_to_json is False:
+
+            for bin_file in self.bin_files:
+                if ".bin" in bin_file and os.path.exists(bin_file):
+                    self.example_to_json(bin_file, bin_file.replace("bin", "json"))
+            self.if_bin_to_json = True
+
+            for i in range(len(self.bin_files)):
+                self.bin_files[i] = self.bin_files[i].replace(".bin", ".json")
+
+        if self.if_chucked is True and self.if_bin_to_json is False and self.num_chucked is not None:
+
+            for chunked in [self.chunked_train_bin_files, self.chunked_test_bin_files, self.chunked_val_bin_files]:
+                if "train" in chunked[0]:
+                    for bin_file in chunked[:self.num_chucked]:
+                        if ".bin" in bin_file and os.path.exists(bin_file):
+                            self.example_to_json(bin_file, bin_file.replace("bin", "json"))
+                    continue
+
+                for bin_file in chunked:
+                    if ".bin" in bin_file and os.path.exists(bin_file):
+                        self.example_to_json(bin_file, bin_file.replace("bin", "json"))
+                self.if_bin_to_json = True
+
+            for chunked in [self.chunked_train_bin_files, self.chunked_test_bin_files, self.chunked_val_bin_files]:
+                if "train" in chunked[0]:
+                    for i in range(self.num_chucked):
+                        self.chunked_train_bin_files[i] = self.chunked_train_bin_files[i].replace(".bin", ".json")
+                elif "test" in chunked[0]:
+                    for i in range(len(chunked)):
+                        self.chunked_test_bin_files[i] = self.chunked_test_bin_files[i].replace(".bin", ".json")
+                elif "val" in chunked[0]:
+                    for i in range(len(chunked)):
+                        self.chunked_val_bin_files[i] = self.chunked_val_bin_files[i].replace(".bin", ".json")
+
+        if self.if_chucked is False:
+            self.file_set = []
+            for json_file in self.bin_files:
+                with open(json_file, "r") as f1:
+                    self.file_set.append(json.load(f1))
+
+        if self.if_chucked is True:
+            self.file_set = {
+                "train": [],
+                "test": [],
+                "val": [],
+            }
+            for chunked in (self.chunked_train_bin_files, self.chunked_test_bin_files, self.chunked_val_bin_files):
+                if "train" in chunked[0]:
+                    for json_file in chunked[:self.num_chucked]:
+                        with open(json_file, "r") as f1:
+                            self.file_set["train"].append(json.load(f1))
+                elif "test" in chunked[0]:
+                    for json_file in chunked:
+                        with open(json_file, "r") as f1:
+                            self.file_set["test"].append(json.load(f1))
+                elif "val" in chunked[0]:
+                    for json_file in chunked:
+                        with open(json_file, "r") as f1:
+                            self.file_set["val"].append(json.load(f1))
+
         with open(vocab_file, 'rb') as f3:
             self.vocab = pickle.load(f3)
         self.vocab_len = len(self.vocab)
-        if bin_files is not None and isinstance(bin_files, list):
-            for i in bin_files:
-                self.example_to_json(i, i.replace("bin", "json"))
-        if bin_files is not None and isinstance(bin_files, str):
-            self.example_to_json(bin_files, bin_files.replace("bin", "json"))
+
+
     # 需要导入tensorflow,因此预先注释掉
     def example_to_json(self, filename, target_filename):
         json_data = {}
@@ -128,65 +206,58 @@ class Data(object):
         with open(target_filename, "w") as f2:
             json.dump(json_data, f2)
 
-    def abstract_extract(self):
+    def abstract_extract(self, s=None):
         """提取 ”摘要“
         Args：
             无
         :returns
             提取出的摘要，为嵌套列表形式，已添加头和尾
         """
-        if self.if_chucked is False:
-            ys = []
-            for i in tqdm(self.file_set):
+        ys = []
+        if s == "train":
+            file_set = self.file_set["train"]
+        elif s == "test":
+            file_set = self.file_set["test"]
+        elif s == "val":
+            file_set = self.file_set["val"]
+        else:
+            file_set = self.file_set
+        for json_iter in file_set:
+            for i in tqdm(json_iter):
                 y = []
-                example = self.file_set[i]['abstract'].split('<s>')
-                y.append(example[1].split())
-                y.append(example[2].split())
-                y.append(example[3].split())
-                y.append(example[4].split())
+                example = json_iter[i]['abstract'].split('<s>')
+                for not_split in example[1:]:
+                    y.append(not_split.split())
                 for sen in y:
                     sen.insert(0, '<s>')
-                ys.append(y)
-            self.ys = ys
-            return ys
-        else:
-            ys = []
-            for json_iter in self.file_set:
-                for i in tqdm(json_iter):
-                    y = []
-                    example = json_iter[i]['abstract'].split('<s>')
-                    for not_split in example[1:]:
-                        y.append(not_split.split())
-                    for sen in y:
-                        sen.insert(0, '<s>')
-                    ys.append([y])
-            self.ys = ys
-            return ys
+                ys.append([y])
+        self.ys = ys
+        return ys
 
-    def article_extract(self):
+    def article_extract(self, s=None):
         """  提取”文本“
         Args:
             无
         :returns
             提取出的文本tokens
         """
-        if self.if_chucked is False:
-            tokens = []
-            for i in tqdm(self.file_set):
-                example = self.file_set[i]['article']
-                tokens.append(example)
-            self.tokens =tokens
-            return tokens
+        tokens = []
+        if s == "train":
+            file_set = self.file_set["train"]
+        elif s == "test":
+            file_set = self.file_set["test"]
+        elif s == "val":
+            file_set = self.file_set["val"]
         else:
-            tokens = []
-            for file in self.file_set:
-                for i in tqdm(file):
-                    example = file[i]['article'].split()
-                    tokens.append(example)
-            self.tokens = tokens
-            return tokens
+            file_set = self.file_set
+        for file in file_set:
+            for i in tqdm(file):
+                example = file[i]['article'].split()
+                tokens.append(example)
+        self.tokens = tokens
+        return tokens
 
-    def token_to_id(self):
+    def token_to_id(self, s=None):
         """
         将摘要和文本转为ids并存盘
         *为节省内存直接存储对应的id列表为pickle序列文件*
@@ -228,15 +299,46 @@ class Data(object):
                 id_per_abstract.append(3)
                 id_abstracts.append(id_per_abstract)
             y_ids.append(id_abstracts)
-        with open("../dataset/ids.pkl", "wb") as f1:
-            pickle.dump(ids, f1)
-            print("../dataset/ids.pkl", " Saved !")
-        with open("../dataset/y.pkl", "wb") as f2:
-            pickle.dump(y_ids, f2)
-            print("../dataset/y_ids.pkl", " Saved !")
-        with open("../dataset/oov_words.pkl", "wb") as f3:
-            pickle.dump(oov_words, f3)
-            print("../dataset/oov_words.pkl Saved !")
+        if s == "train":
+            with open("../dataset/train_ids.pkl", "wb") as f1:
+                pickle.dump(ids, f1)
+                print("../dataset/train_ids.pkl", " Saved !")
+            with open("../dataset/train_y.pkl", "wb") as f2:
+                pickle.dump(y_ids, f2)
+                print("../dataset/train_y_ids.pkl", " Saved !")
+            with open("../dataset/train_oov_words.pkl", "wb") as f3:
+                pickle.dump(oov_words, f3)
+                print("../dataset/train_oov_words.pkl Saved !")
+        elif s == "test":
+            with open("../dataset/test_ids.pkl", "wb") as f1:
+                pickle.dump(ids, f1)
+                print("../dataset/test_ids.pkl", " Saved !")
+            with open("../dataset/test_y.pkl", "wb") as f2:
+                pickle.dump(y_ids, f2)
+                print("../dataset/test_y_ids.pkl", " Saved !")
+            with open("../dataset/test_oov_words.pkl", "wb") as f3:
+                pickle.dump(oov_words, f3)
+                print("../dataset/test_oov_words.pkl Saved !")
+        elif s == "val":
+            with open("../dataset/val_ids.pkl", "wb") as f1:
+                pickle.dump(ids, f1)
+                print("../dataset/val_ids.pkl", " Saved !")
+            with open("../dataset/val_y.pkl", "wb") as f2:
+                pickle.dump(y_ids, f2)
+                print("../dataset/val_y_ids.pkl", " Saved !")
+            with open("../dataset/val_oov_words.pkl", "wb") as f3:
+                pickle.dump(oov_words, f3)
+                print("../dataset/val_oov_words.pkl Saved !")
+        else:
+            with open("../dataset/ids.pkl", "wb") as f1:
+                pickle.dump(ids, f1)
+                print("../dataset/ids.pkl", " Saved !")
+            with open("../dataset/y.pkl", "wb") as f2:
+                pickle.dump(y_ids, f2)
+                print("../dataset/y_ids.pkl", " Saved !")
+            with open("../dataset/oov_words.pkl", "wb") as f3:
+                pickle.dump(oov_words, f3)
+                print("../dataset/oov_words.pkl Saved !")
         return (ids, y_ids, oov_words)
 
     def data_process(self):
@@ -245,9 +347,15 @@ class Data(object):
         :return:
             无
         """
-        self.abstract_extract()
-        self.article_extract()
-        self.token_to_id()
+        self.abstract_extract("train")
+        self.article_extract("train")
+        self.token_to_id("train")
+        self.abstract_extract("test")
+        self.article_extract("test")
+        self.token_to_id("test")
+        self.abstract_extract("val")
+        self.article_extract("val")
+        self.token_to_id("val")
 
 
 if __name__ == '__main__':
@@ -257,8 +365,6 @@ if __name__ == '__main__':
     data = Data(
         if_chucked=True,
         vocab_file="../dataset/word_id.pkl",
-        file_or_file_list=["../dataset/train.json",
-                           ],
-        #bin_files="../dataset/train.bin"
+        num_chucked=100,
     )
     data.data_process()

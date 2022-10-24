@@ -1,12 +1,4 @@
-#import tensorflow as tf
-import struct
-import json
-import string
-import pickle
-import torch
-import glob
-#from tensorflow.core.example import example_pb2
-from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pack_sequence, pad_packed_sequence
+
 """a = torch.randn([8, 20, 30])
 b = torch.cat((a[0], a[1]), dim=-1)
 print(b.size())
@@ -134,7 +126,7 @@ loss = torch.sum(loss) / 300
 print(loss)
 """
 
-
+"""
 from rouge import Rouge
 pred = torch.randint(0, 10, (16, 20)).tolist()
 test = torch.randint(0, 10, (16, 20)).tolist()
@@ -155,3 +147,27 @@ scores = rouge.get_scores(f1s, f2s, avg=True)
 r1_f = scores["rouge-1"]["f"]
 r2_f = scores["rouge-2"]["f"]
 rl_f = scores["rouge-l"]["f"]
+"""
+import os
+file_path = "../dataset/"
+files = os.listdir(file_path)
+print(files)
+
+bin_files = [
+            "../dataset/train.bin",
+            "../dataset/val.bin",
+            "../dataset/test.bin",
+        ]
+
+for i in range(len(bin_files)):
+    bin_files[i] = "Test" + bin_files[i]
+
+print(bin_files)
+
+for i in bin_files[:2]:
+    print(i)
+
+
+a = [[1,2,3],[2,3,4],[41,123]]
+for i in a:
+    print(i[0])

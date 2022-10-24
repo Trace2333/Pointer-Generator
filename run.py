@@ -34,6 +34,21 @@ loader = DataLoader(
         num_workers=0,
         collate_fn=collate_fn,
 )
+eval_dataset = DatasetBase(
+    input_ids_path="",
+    y_path="",
+    vocab_path="./dataset/word_id.pkl",
+    oov_words_path="",
+    device=device
+)
+eval_loader  = DataLoader(
+    dataset=eval_dataset,
+    batch_size=16,
+    shuffle=True,
+    drop_last=True,
+    num_workers=0,
+    collate_fn=collate_fn,
+)
 pl_model = PlPointerGenerator(
     torch_model=model,
     lr=1e-2,
@@ -41,7 +56,7 @@ pl_model = PlPointerGenerator(
     if_warm_up=False,
     LR_scheduler="step",
     optim_type="Adam",
-    use_wandb=True,
+    use_wandb=False,
     use_tensorboard=False,
     debug=True,
 )
