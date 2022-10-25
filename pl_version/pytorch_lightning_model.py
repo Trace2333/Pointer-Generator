@@ -2,8 +2,10 @@ import os
 import torch.nn
 import torch
 import wandb
-import pytorch_lightning as pl
+
 from rouge import Rouge
+
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 

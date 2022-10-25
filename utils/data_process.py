@@ -1,9 +1,10 @@
 import os
 import pickle
-from tqdm import tqdm
 import json
-
 import struct
+
+from tqdm import tqdm
+
 from tensorflow.core.example import example_pb2
 
 # <s> and </s> are used in the data files to segment the abstracts into sentences. They don't receive vocab ids.
@@ -164,15 +165,18 @@ class Data(object):
                 "test": [],
                 "val": [],
             }
+
             for chunked in (self.chunked_train_bin_files, self.chunked_test_bin_files, self.chunked_val_bin_files):
                 if "train" in chunked[0]:
                     for json_file in chunked[:self.num_chucked]:
                         with open(json_file, "r") as f1:
                             self.file_set["train"].append(json.load(f1))
+
                 elif "test" in chunked[0]:
                     for json_file in chunked:
                         with open(json_file, "r") as f1:
                             self.file_set["test"].append(json.load(f1))
+
                 elif "val" in chunked[0]:
                     for json_file in chunked:
                         with open(json_file, "r") as f1:
@@ -182,27 +186,34 @@ class Data(object):
             self.vocab = pickle.load(f3)
         self.vocab_len = len(self.vocab)
 
-
     # 需要导入tensorflow,因此预先注释掉
     def example_to_json(self, filename, target_filename):
         json_data = {}
         count = 0
         with open(filename, "rb") as f1:
+
             while True:
                 count += 1
                 per_iter = {}
                 len_bytes = f1.read(8)
+
                 if not len_bytes:
                     break
+
                 str_len = struct.unpack('q', len_bytes)[0]
                 example_str = struct.unpack('%ds' % str_len, f1.read(str_len))[0]
+
                 ex = example_pb2.Example.FromString(example_str)
+
                 article = ex.features.feature['article'].bytes_list.value[0].decode()
                 abstract = ex.features.feature['abstract'].bytes_list.value[0].decode()
+
                 json_data[count] = per_iter
                 per_iter['abstract'] = abstract
                 per_iter['article'] = article
+
                 print("Precessed", count, "example")
+
         with open(target_filename, "w") as f2:
             json.dump(json_data, f2)
 
@@ -214,6 +225,7 @@ class Data(object):
             提取出的摘要，为嵌套列表形式，已添加头和尾
         """
         ys = []
+
         if s == "train":
             file_set = self.file_set["train"]
         elif s == "test":
@@ -222,6 +234,7 @@ class Data(object):
             file_set = self.file_set["val"]
         else:
             file_set = self.file_set
+
         for json_iter in file_set:
             for i in tqdm(json_iter):
                 y = []
@@ -231,7 +244,9 @@ class Data(object):
                 for sen in y:
                     sen.insert(0, '<s>')
                 ys.append([y])
+
         self.ys = ys
+
         return ys
 
     def article_extract(self, s=None):
@@ -250,11 +265,14 @@ class Data(object):
             file_set = self.file_set["val"]
         else:
             file_set = self.file_set
+
         for file in file_set:
             for i in tqdm(file):
                 example = file[i]['article'].split()
                 tokens.append(example)
+
         self.tokens = tokens
+
         return tokens
 
     def token_to_id(self, s=None):
@@ -266,6 +284,7 @@ class Data(object):
         """
         ids = []
         oov_words = []
+
         for story in self.tokens:
             oov_id = self.vocab_len
             id_per_article = [2]
@@ -283,6 +302,7 @@ class Data(object):
             id_per_article.append(3)
             ids.append(id_per_article)
             oov_words.append(oov_words_one_story)
+
         y_ids = []
         for step, abstracts in enumerate(self.ys):   # 常规读取操作
             id_abstracts = []
@@ -299,36 +319,43 @@ class Data(object):
                 id_per_abstract.append(3)
                 id_abstracts.append(id_per_abstract)
             y_ids.append(id_abstracts)
+
         if s == "train":
-            with open("../dataset/train_ids.pkl", "wb") as f1:
+            if not os.path.exists("../dataset/train"):
+                os.mkdir("../dataset/train/")
+            with open("../dataset/train/ids.pkl", "wb") as f1:
                 pickle.dump(ids, f1)
-                print("../dataset/train_ids.pkl", " Saved !")
-            with open("../dataset/train_y.pkl", "wb") as f2:
+                print("../dataset/train/ids.pkl", " Saved !")
+            with open("../dataset/train/y.pkl", "wb") as f2:
                 pickle.dump(y_ids, f2)
-                print("../dataset/train_y_ids.pkl", " Saved !")
-            with open("../dataset/train_oov_words.pkl", "wb") as f3:
+                print("../dataset/train/y_ids.pkl", " Saved !")
+            with open("../dataset/train/oov_words.pkl", "wb") as f3:
                 pickle.dump(oov_words, f3)
-                print("../dataset/train_oov_words.pkl Saved !")
+                print("../dataset/train/oov_words.pkl Saved !")
         elif s == "test":
-            with open("../dataset/test_ids.pkl", "wb") as f1:
+            if not os.path.exists("../dataset/test"):
+                os.mkdir("../dataset/test/")
+            with open("../dataset/test/ids.pkl", "wb") as f1:
                 pickle.dump(ids, f1)
-                print("../dataset/test_ids.pkl", " Saved !")
-            with open("../dataset/test_y.pkl", "wb") as f2:
+                print("../dataset/test/ids.pkl", " Saved !")
+            with open("../dataset/test/y.pkl", "wb") as f2:
                 pickle.dump(y_ids, f2)
-                print("../dataset/test_y_ids.pkl", " Saved !")
-            with open("../dataset/test_oov_words.pkl", "wb") as f3:
+                print("../dataset/test/y_ids.pkl", " Saved !")
+            with open("../dataset/test/oov_words.pkl", "wb") as f3:
                 pickle.dump(oov_words, f3)
-                print("../dataset/test_oov_words.pkl Saved !")
+                print("../dataset/test/oov_words.pkl Saved !")
         elif s == "val":
-            with open("../dataset/val_ids.pkl", "wb") as f1:
+            if not os.path.exists("../dataset/val"):
+                os.mkdir("../dataset/val/")
+            with open("../dataset/val/ids.pkl", "wb") as f1:
                 pickle.dump(ids, f1)
-                print("../dataset/val_ids.pkl", " Saved !")
-            with open("../dataset/val_y.pkl", "wb") as f2:
+                print("../dataset/val/ids.pkl", " Saved !")
+            with open("../dataset/val/y.pkl", "wb") as f2:
                 pickle.dump(y_ids, f2)
-                print("../dataset/val_y_ids.pkl", " Saved !")
-            with open("../dataset/val_oov_words.pkl", "wb") as f3:
+                print("../dataset/vak/y_ids.pkl", " Saved !")
+            with open("../dataset/val/oov_words.pkl", "wb") as f3:
                 pickle.dump(oov_words, f3)
-                print("../dataset/val_oov_words.pkl Saved !")
+                print("../dataset/val/oov_words.pkl Saved !")
         else:
             with open("../dataset/ids.pkl", "wb") as f1:
                 pickle.dump(ids, f1)
@@ -339,6 +366,7 @@ class Data(object):
             with open("../dataset/oov_words.pkl", "wb") as f3:
                 pickle.dump(oov_words, f3)
                 print("../dataset/oov_words.pkl Saved !")
+
         return (ids, y_ids, oov_words)
 
     def data_process(self):
@@ -350,9 +378,11 @@ class Data(object):
         self.abstract_extract("train")
         self.article_extract("train")
         self.token_to_id("train")
+
         self.abstract_extract("test")
         self.article_extract("test")
         self.token_to_id("test")
+
         self.abstract_extract("val")
         self.article_extract("val")
         self.token_to_id("val")
@@ -365,6 +395,6 @@ if __name__ == '__main__':
     data = Data(
         if_chucked=True,
         vocab_file="../dataset/word_id.pkl",
-        num_chucked=100,
+        num_chucked=10,
     )
     data.data_process()
