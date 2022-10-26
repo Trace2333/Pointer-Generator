@@ -55,9 +55,9 @@ class PlPointerGenerator(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         article_ids, oov_words, abstracts_ids, max_oov_nums, seq_lens = batch
-        model_out = self.model(article_ids, oov_words, abstracts_ids, max_oov_nums, seq_lens)
+        model_out = self.model.evaluation(article_ids, abstracts_ids, oov_words, max_oov_nums, seq_lens)
         # loss = self.lossfun(model_out[:, 1:, :].permute(0, 2, 1), abstracts_ids)
-        loss = self.loss_as_nll(model_out[:, 1:, :].permute(0, 2, 1), abstracts_ids)
+        #loss = self.loss_as_nll(model_out[:, 1:, :].permute(0, 2, 1), abstracts_ids)
 
         # metrics compute
         scores = self.rouge_compute(model_out, abstracts_ids)
@@ -66,12 +66,12 @@ class PlPointerGenerator(pl.LightningModule):
         rl_f = scores["rouge-l"]["f"]
 
         if self.debug is not None and self.debug is True and self.use_wandb is True:
-            wandb.log({"Eval-loss_gen": loss.item()})
+            #wandb.log({"Eval-loss_gen": loss.item()})
             wandb.log({"Eval-Rouge1": r1_f})
             wandb.log({"Eval-Rouge2": r2_f})
             wandb.log({"Eval-RougeL": rl_f})
 
-        return loss
+        return
 
     def test_step(self, batch, batch_idx):
         return

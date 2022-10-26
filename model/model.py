@@ -181,7 +181,7 @@ class Decoder(nn.Module):
         p_vocab = gen_prob * p_vocab
 
         #连接额外的0
-        extended_zeros = torch.zeros([self.batch_size, max_oov_nums]).to(self.device)
+        extended_zeros = torch.zeros([self.batch_size, max_oov_nums]).to(self.device) # 这里有问题，该操作实际意义不大
         p_vocab = torch.cat((p_vocab, extended_zeros), -1)
 
         p = p_vocab.scatter_add(1, ids, attention_dist)
@@ -219,6 +219,7 @@ class PointerGenerator(nn.Module):
 
     def forward(self, x, oov_words, y, max_oov_nums, seq_lens):   # y for teacher-forcing
         encoder_input = self.embw(x)
+        # 编码问题：两种方法，第一是将所有的oov全部编码为同一个vocab号，或者拓展vocab然后选取一部分来作为待存区
         encoder_input_y = self.embw(y)
 
         encoder_outputs, encoder_cell_state, encoder_hidden_state = self.encoder.forward(encoder_input, seq_lens)
@@ -233,4 +234,21 @@ class PointerGenerator(nn.Module):
 
         # encoder的所有输入都集合到一个时间步中
 
+    def evaluation(self, x, y, oov_words, max_oov_nums, seq_lens):
+        encoder_input = self.embw(x)
+        encoder_outputs, encoder_cell_state, encoder_hidden_state = self.encoder.forward(encoder_input, seq_lens)
+        encoder_in = [encoder_outputs, encoder_cell_state, encoder_hidden_state]
 
+        out = torch.zeros([self.batch_size, 1, self.vocab_size + max_oov_nums]).to(self.device)
+
+        for token in encoder_input.split(1, dim=1):
+            if out.size()[1] is 1:
+                pre_x = self.embw(torch.full([self.batch_size, 1], 2).to(self.device))
+            else:
+                pre_x = self.embw(out[:, -1, :].argmax(-1)).unsqueeze(1)
+
+            p = self.decoder.forward(token, pre_x, encoder_in, max_oov_nums, x).unsqueeze(1)
+            out = torch.cat((out, p), dim=1)
+            if out.size()[1] == y.size()[1]:
+                break
+        return out
