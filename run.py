@@ -58,11 +58,11 @@ eval_loader = DataLoader(
 )
 pl_model = PlPointerGenerator(
     torch_model=model,
-    lr=1e-2,
+    lr=1e-3,
     batch_size=batch_size,
     if_warm_up=False,
     LR_scheduler="step",
-    optim_type="Adam",
+    optim_type="SGD",
     use_wandb=True,
     use_tensorboard=False,
     debug=True,
