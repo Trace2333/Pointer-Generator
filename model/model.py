@@ -60,6 +60,7 @@ class Decoder(nn.Module):
         #   目前的一些问题：
         super(Decoder, self).__init__()
         self.lstm = nn.LSTM(input_size=input_size, hidden_size=hidden_size, bidirectional=False, batch_first=True)
+        self.x_c_i = nn.Linear(2 * hidden_size + embw_size, embw_size)
         self.embw = nn.Embedding(vocab_size, embw_size)   # When no input Embedding vec
         self.W_s = nn.Linear(hidden_size * 2, attention_size, bias=True)
         self.W_h = nn.Linear(hidden_size * 2, attention_size)
@@ -70,6 +71,7 @@ class Decoder(nn.Module):
         self.p_gen_fc = nn.Linear(embw_size + attention_size * 2, 1, bias=False)
         self.softmax = nn.Softmax(dim=-1)
         self.tanh = nn.Tanh()
+        self.context_t = torch.randn([batch_size, hidden_size * 2]).to(device)
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.vocab_size = vocab_size
@@ -79,20 +81,20 @@ class Decoder(nn.Module):
         self.last_hidden_state = None
         self.if_coverage = if_coverage
         self.batch_size = batch_size
-        #self.attention_dists = []
         self.coverages = None
-        #self.cov_loss = []
-        #self.gen_prob = []
         self.device = device
         self.exteneded_size = 0
         self.weight_init()
 
-    def lstm_compute(self, x):
+    def lstm_compute(self, y):
         if self.last_hidden_state is None:   # 初始化一个零矩阵
             self.last_hidden_state = torch.zeros([1, self.batch_size, self.hidden_size]).to(self.device)
 
         if self.last_cell_state is None:
             self.last_cell_state = torch.zeros([1, self.batch_size, self.hidden_size]).to(self.device)
+
+        input_features = torch.cat((y, self.context_t.unsqueeze(1)), dim=-1)
+        x = self.x_c_i(input_features)
 
         (out, (decoder_state, decoder_cell)) = self.lstm(x, (self.last_hidden_state, self.last_cell_state))
         self.last_hidden_state = decoder_state.data
@@ -131,6 +133,7 @@ class Decoder(nn.Module):
 
     def context_vec_get(self, attention, encoder_outputs):
         context_vec = torch.bmm(attention.unsqueeze(1), encoder_outputs).view(-1, self.hidden_size * 2)
+        self.context_t = context_vec.data
         return context_vec   # weighted sum of the encoder_outputs, [batch_size, hidden_size * 2]
 
     def vocab_dist_get(self, context_vec, decoder_state):

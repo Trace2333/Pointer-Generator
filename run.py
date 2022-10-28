@@ -62,8 +62,8 @@ pl_model = PlPointerGenerator(
     batch_size=batch_size,
     if_warm_up=False,
     LR_scheduler="step",
-    optim_type="SGD",
-    use_wandb=True,
+    optim_type="Adam",
+    use_wandb=False,
     use_tensorboard=False,
     debug=True,
 )
