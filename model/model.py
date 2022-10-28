@@ -87,11 +87,6 @@ class Decoder(nn.Module):
         self.weight_init()
 
     def lstm_compute(self, y):
-        if self.last_hidden_state is None:   # 初始化一个零矩阵
-            self.last_hidden_state = torch.zeros([1, self.batch_size, self.hidden_size]).to(self.device)
-
-        if self.last_cell_state is None:
-            self.last_cell_state = torch.zeros([1, self.batch_size, self.hidden_size]).to(self.device)
 
         input_features = torch.cat((y, self.context_t.unsqueeze(1)), dim=-1)
         x = self.x_c_i(input_features)
@@ -228,6 +223,9 @@ class PointerGenerator(nn.Module):
         encoder_outputs, encoder_cell_state, encoder_hidden_state = self.encoder.forward(encoder_input, seq_lens)
         encoder_in = [encoder_outputs, encoder_cell_state, encoder_hidden_state]
 
+        self.decoder.last_cell_state = encoder_in[1].unsqueeze(0)
+        self.decoder.last_hidden_state = encoder_in[2].unsqueeze(0)
+
         out = torch.zeros([self.batch_size, 1, self.vocab_size + max_oov_nums]).to(self.device)
 
         for token, y_token in zip(encoder_input.split(1, dim=1), encoder_input_y.split(1, dim=1)):
@@ -241,6 +239,9 @@ class PointerGenerator(nn.Module):
         encoder_input = self.embw(x)
         encoder_outputs, encoder_cell_state, encoder_hidden_state = self.encoder.forward(encoder_input, seq_lens)
         encoder_in = [encoder_outputs, encoder_cell_state, encoder_hidden_state]
+
+        self.decoder.last_cell_state = encoder_in[1].unsqueeze(0)
+        self.decoder.last_hidden_state = encoder_in[2].unsqueeze(0)
 
         out = torch.zeros([self.batch_size, 1, self.vocab_size + max_oov_nums]).to(self.device)
 
